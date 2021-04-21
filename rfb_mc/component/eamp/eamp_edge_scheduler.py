@@ -23,6 +23,7 @@ class EampEdgeScheduler(SchedulerBase[EampEdgeInterval, EampEdgeInterval, EampRf
         confidence: Fraction,
         a: int,
         q: int,
+        min_model_count: Optional[int] = None,
         max_model_count: Optional[int] = None,
     ):
         super().__init__(store, EampRfm)
@@ -34,13 +35,14 @@ class EampEdgeScheduler(SchedulerBase[EampEdgeInterval, EampEdgeInterval, EampRf
         self.confidence: Fraction = confidence
         self.a: int = a
         self.q: int = q
-        self.max_model_count = max_model_count if max_model_count is not None else prod([
+        self.max_model_count: int = max_model_count if max_model_count is not None else prod([
             2 ** (bit_width * count) for bit_width, count in self.store.data.params.bit_width_counter.items()
         ])
+        self.min_model_count: int = min_model_count if min_model_count is not None else 0
 
     def _run_algorithm_once(self):
         if self.max_model_count == 0:
-            return EampEdgeInterval(interval=(0, 0), confidence=1)
+            return EampEdgeInterval(interval=(0, 0), confidence=Fraction(1))
 
         g = (sqrt(self.a + 1) - 1) ** 2
         G = (sqrt(self.a + 1) + 1) ** 2
@@ -94,7 +96,7 @@ class EampEdgeScheduler(SchedulerBase[EampEdgeInterval, EampEdgeInterval, EampRf
         def pre_estimate(c: List[int]) -> Optional[bool]:
             if self.max_model_count ** self.q < range_size(c) * G:
                 return False
-            elif range_size(c) == 0:
+            elif self.min_model_count ** self.q > range_size(c) * g:
                 return True
             elif c_neg is not None and range_size(c_neg) <= range_size(c):
                 return False
@@ -110,13 +112,22 @@ class EampEdgeScheduler(SchedulerBase[EampEdgeInterval, EampEdgeInterval, EampRf
         # error probability of the independent probabilistic execution that have occurred
         error_probabilities: List[Fraction] = []
 
+        min_model_count = self.min_model_count
+        max_model_count = self.max_model_count
+
         def get_edge_interval():
+            if c_pos is not None:
+                lower_bound = int(floor(max(float(min_model_count), (range_size(c_pos) * g) ** (1 / self.q))))
+            else:
+                lower_bound = min_model_count
+
+            if c_neg is not None:
+                upper_bound = int(ceil(min(float(max_model_count), (range_size(c_neg) * G) ** (1 / self.q))))
+            else:
+                upper_bound = max_model_count
+
             return EampEdgeInterval(
-                interval=(
-                    (range_size(c_pos) * g) ** (1 / self.q) if c_pos is not None else 0,
-                    min(self.max_model_count, (range_size(c_neg) * G) ** (1 / self.q))
-                    if c_neg is not None else self.max_model_count
-                ),
+                interval=(lower_bound, upper_bound),
                 confidence=probability_of_correctness(error_probabilities),
             )
 
