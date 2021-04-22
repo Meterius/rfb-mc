@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="rfb_mc",
-    version="0.0.5",
+    version="0.0.6",
     author="Jonah Leander Hoff",
     author_email="jonah-hoff@outlook.com",
     description="Performs model counting using restrictive formulas",
@@ -15,6 +15,6 @@ setuptools.setup(
     project_urls={
         "Bug Tracker": "https://github.com/Meterius/rfb-mc/issues",
     },
-    packages=["rfb_mc"],
+    packages=setuptools.find_packages(),
     python_requires=">=3.6",
 )
