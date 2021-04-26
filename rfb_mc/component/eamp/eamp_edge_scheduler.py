@@ -1,5 +1,5 @@
 from fractions import Fraction
-from math import sqrt, prod, log2, ceil, floor
+from math import sqrt, prod, log2, ceil, floor, log
 from typing import NamedTuple, Tuple, Optional, Iterable, List
 from collections import Counter
 from rfb_mc.component.eamp.primes import get_pj
@@ -44,10 +44,9 @@ class EampEdgeScheduler(SchedulerBase[EampEdgeInterval, EampEdgeInterval, EampRf
         if self.max_model_count == 0:
             return EampEdgeInterval(interval=(0, 0), confidence=Fraction(1))
 
-        g = (sqrt(self.a + 1) - 1) ** 2
-        G = (sqrt(self.a + 1) + 1) ** 2
+        g, lg = self.get_g_and_lg(self.a)
 
-        cn = max(int(floor(log2(log2(self.max_model_count ** self.q / G) + 1) + 1)), 1)
+        cn = max(int(floor(log2(log2(self.max_model_count ** self.q / lg) + 1) + 1)), 1)
 
         p = tuple([
             get_pj(j) for j in range(cn)
@@ -94,7 +93,7 @@ class EampEdgeScheduler(SchedulerBase[EampEdgeInterval, EampEdgeInterval, EampRf
             ).range_size
 
         def pre_estimate(c: List[int]) -> Optional[bool]:
-            if self.max_model_count ** self.q < range_size(c) * G:
+            if self.max_model_count ** self.q < range_size(c) * lg:
                 return False
             elif self.min_model_count ** self.q > range_size(c) * g:
                 return True
@@ -122,7 +121,7 @@ class EampEdgeScheduler(SchedulerBase[EampEdgeInterval, EampEdgeInterval, EampRf
                 lower_bound = min_model_count
 
             if c_neg is not None:
-                upper_bound = int(ceil(min(float(max_model_count), (range_size(c_neg) * G) ** (1 / self.q))))
+                upper_bound = int(ceil(min(float(max_model_count), (range_size(c_neg) * lg) ** (1 / self.q))))
             else:
                 upper_bound = max_model_count
 
@@ -208,3 +207,37 @@ class EampEdgeScheduler(SchedulerBase[EampEdgeInterval, EampEdgeInterval, EampRf
         yield from self._run_algorithm_once()
         # second iteration ensures updated results are used
         return (yield from self._run_algorithm_once())
+
+    @staticmethod
+    def get_g_and_lg(a: int) -> Tuple[float, float]:
+        """
+        Returns the internal parameters g and G for the given a.
+        """
+
+        return (sqrt(a + 1) - 1) ** 2, (sqrt(a + 1) + 1) ** 2
+
+    @staticmethod
+    def get_q_for_fixed_a_that_ensures_upper_bound_for_multiplicative_gap_of_result(
+        a: int,
+        epsilon: float,
+    ) -> int:
+        """
+        Returns the minimal parameter q that ensures that for the given a we have,
+        get_upper_bound_for_multiplicative_gap_of_result(a, q) <= (1 + epsilon) ** 2.
+        That condition is equivalent to the statement that the geometric mean of the final edge interval
+        is a multiplicative approximation with error epsilon i.e.
+        model_count / (1 + epsilon) <= geometric_mean <= model_count * (1 + epsilon).
+        """
+
+        g, lg = EampEdgeScheduler.get_g_and_lg(a)
+        return int(ceil(0.5 * log(2 * lg / g, 1 + epsilon)))
+
+    @staticmethod
+    def get_upper_bound_for_multiplicative_gap_of_result(a: int, q: int) -> float:
+        """
+        Returns an upper bound on the multiplicative gap of the final edge interval returned
+        by the eamp edge scheduler.
+        """
+
+        g, lg = EampEdgeScheduler.get_g_and_lg(a)
+        return (2 * lg / g) ** (1 / q)
