@@ -2,6 +2,8 @@ import shutil
 import subprocess
 import os
 
+subprocess.run(["python", "-m", "pip", "install", "twine", "build"])
+
 if os.path.exists("dist"):
     shutil.rmtree("dist")
 
