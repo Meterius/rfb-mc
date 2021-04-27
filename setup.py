@@ -16,5 +16,6 @@ setuptools.setup(
         "Bug Tracker": "https://github.com/Meterius/rfb-mc/issues",
     },
     packages=setuptools.find_packages(),
+    include_package_data=True,
     python_requires=">=3.6",
 )

@@ -1,8 +1,7 @@
 from ast import literal_eval
-from collections import Counter
 from decimal import Decimal
 from operator import itemgetter
-from typing import Dict, Tuple, TypedDict, Any, Literal
+from typing import Dict, Tuple, TypedDict, Any, Literal, Counter
 
 from rfb_mc.restrictive_formula_module import get_restrictive_formula_module
 from rfb_mc.store import StoreData
