@@ -50,6 +50,8 @@ class DirectIntegratorBase(
 
         s1 = perf_counter()
 
+        self._print_debug("Starting integrator run")
+
         try:
             # execute tasks until the algorithm stops the iteration thus indicating the final result
             while True:

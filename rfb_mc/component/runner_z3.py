@@ -17,7 +17,12 @@ class RunnerZ3(RunnerBase[FormulaParamsZ3, RfmiGenerationArgsZ3, z3.BoolRef]):
         params: Params,
         formula_params: FormulaParamsZ3,
     ):
-        super().__init__(params, formula_params)
+        super().__init__(params, FormulaParamsZ3(
+            # translates the contexts, thus the formula and variables need not be created with the context
+            # the z3 runner will use
+            formula=formula_params.formula.translate(z3.main_ctx()),
+            variables=[x.translate(z3.main_ctx()) for x in formula_params.variables],
+        ))
 
         # maps q to a solver that has a q-times conjunction asserted
         self._solver_map: Dict[int, Tuple[z3.Solver, List[z3.BitVecRef]]] = {}
