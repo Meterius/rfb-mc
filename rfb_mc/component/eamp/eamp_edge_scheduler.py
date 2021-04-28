@@ -233,6 +233,32 @@ class EampEdgeScheduler(SchedulerBase[EampEdgeInterval, EampEdgeInterval, EampRf
         return int(ceil(0.5 * log(2 * lg / g, 1 + epsilon)))
 
     @staticmethod
+    def get_a_for_fixed_q_that_ensures_upper_bound_for_multiplicative_gap_of_result(
+        q: int,
+        epsilon: float,
+    ) -> int:
+        """
+        Returns the minimal parameter a that ensures that for the given q we have,
+        get_upper_bound_for_multiplicative_gap_of_result(a, q) <= (1 + epsilon) ** 2.
+        That condition is equivalent to the statement that the geometric mean of the final edge interval
+        is a multiplicative approximation with error epsilon i.e.
+        model_count / (1 + epsilon) <= geometric_mean <= model_count * (1 + epsilon).
+        """
+
+        if 2 ** (1 / q) >= (1 + epsilon) ** 2:
+            raise ValueError(f"For epsilon={epsilon} and q={q} "
+                             f"i.e. (1 + epsilon) ** 2 = {(1 + epsilon) ** 2}, higher a "
+                             f"values will only be able to converge to {2 ** (1 / q)} thus epsilon "
+                             f"{sqrt(2 ** (1 / q)) - 1}")
+
+        # TODO: replace by proper formula
+        a = 1
+        while EampEdgeScheduler.get_upper_bound_for_multiplicative_gap_of_result(a, q) > (1 + epsilon) ** 2:
+            a += 1
+
+        return a
+
+    @staticmethod
     def get_upper_bound_for_multiplicative_gap_of_result(a: int, q: int) -> float:
         """
         Returns an upper bound on the multiplicative gap of the final edge interval returned
