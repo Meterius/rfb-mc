@@ -1,10 +1,52 @@
 import unittest
+import z3
+from collections import Counter
+from fractions import Fraction
 from math import sqrt
 
-from rfb_mc.component.eamp.eamp_edge_scheduler import EampEdgeScheduler
+from rfb_mc.component.direct_integrator_z3 import DirectIntegratorZ3
+from rfb_mc.component.eamp.eamp_rfmi_z3 import EampRfmiZ3
+from rfb_mc.component.eamp.eamp_edge_scheduler import EampEdgeScheduler, EampEdgeInterval
+from rfb_mc.component.runner_z3 import RunnerZ3, FormulaParamsZ3
+from rfb_mc.component.in_memory_store import InMemoryStore
+from rfb_mc.store import StoreData
+from rfb_mc.types import Params
 
 
 class TestEampEdgeScheduler(unittest.TestCase):
+    def test_run(self):
+        RunnerZ3.register_restrictive_formula_module_implementation(EampRfmiZ3)
+
+        store = InMemoryStore(
+            data=StoreData(
+                params=Params(
+                    bit_width_counter=Counter([4, 8])
+                )
+            )
+        )
+
+        scheduler = EampEdgeScheduler(
+            store=store,
+            confidence=Fraction(0.95),
+            a=100,
+            q=2,
+        )
+
+        x, y = z3.BitVec("x", 4), z3.BitVec("y", 8)
+
+        formula: z3.BoolRef = z3.ULT(z3.ZeroExt(4, x) + y, z3.BitVecVal(56, 8))
+
+        integrator = DirectIntegratorZ3(
+            formula_params=FormulaParamsZ3(
+                formula=formula,
+                variables=[x, y],
+            )
+        )
+
+        result: EampEdgeInterval = integrator.run_all(scheduler)
+
+        self.assertTrue(True, "EampEdgeInterval does not raise Exception")
+
     def test_get_g_and_lg(self):
         for a in (1, 10, 100, 1000, 10000000):
             g, lg = EampEdgeScheduler.get_g_and_lg(a)

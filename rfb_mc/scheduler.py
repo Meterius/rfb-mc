@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Counter, Generic, TypeVar, Generator, Type
+from typing import Counter, Generic, TypeVar, Generator, Type, Union
 from rfb_mc.store import StoreBase
 from rfb_mc.restrictive_formula_module import RestrictiveFormulaModuleBase
-from rfb_mc.types import RfBmcTask
+from rfb_mc.types import RfBmcTask, BmcTask
 
 IntermediateResult = TypeVar("IntermediateResult")
 
@@ -15,8 +15,8 @@ RestrictiveFormulaModule = TypeVar("RestrictiveFormulaModule", bound=Restrictive
 class SchedulerBase(ABC, Generic[IntermediateResult, Result, RestrictiveFormulaModule]):
     @dataclass
     class AlgorithmYield:
-        required_tasks: Counter[RfBmcTask]
-        predicted_required_tasks: Counter[RfBmcTask]
+        required_tasks: Counter[Union[BmcTask, RfBmcTask]]
+        predicted_required_tasks: Counter[Union[BmcTask, RfBmcTask]]
         intermediate_result: IntermediateResult
 
     def __init__(self, store: StoreBase, rf_module: Type[RestrictiveFormulaModule]):

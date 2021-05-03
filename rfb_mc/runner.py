@@ -4,7 +4,7 @@ from rfb_mc.restrictive_formula_module import register_restrictive_formula_modul
 from rfb_mc.restrictive_formula_module_implementation import RestrictiveFormulaModuleImplementationBase, \
     RestrictiveFormulaInstance
 from rfb_mc.runner_random import RunnerRandom
-from rfb_mc.types import Params, RfBmcTask, RfBmcResult
+from rfb_mc.types import Params, RfBmcTask, RfBmcResult, BmcResult, BmcTask
 
 FormulaParams = TypeVar("FormulaParams")
 
@@ -75,6 +75,14 @@ class RunnerBase(ABC, Generic[FormulaParams, RestrictiveFormulaInstanceGeneratio
         Performs bounded model counting on the formula resulting from
         first replicating the original formula q-times and
         then introducing a restrictive formula condition.
+        """
+
+        raise NotImplementedError()
+
+    @abstractmethod
+    def bmc(self, task: BmcTask) -> BmcResult:
+        """
+        Performs bounded model counting.
         """
 
         raise NotImplementedError()
