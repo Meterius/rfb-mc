@@ -9,7 +9,7 @@ from typing import Generic, Iterable, Type, TypeVar, Any
 from rfb_mc.runner import FormulaParams, RunnerBase
 from rfb_mc.integrator import IntegratorBase, IntermediateResult, Result
 from rfb_mc.scheduler import SchedulerBase
-from rfb_mc.types import Params, RfBmcTask
+from rfb_mc.types import Params, RfBmcTask, BmcTask
 
 SerializedFormulaParams = TypeVar("SerializedFormulaParams")
 
@@ -102,7 +102,7 @@ class MultiProcessingIntegratorBase(
 
         while task is not None:
             s = perf_counter()
-            result = runner.rf_bmc(task)
+            result = runner.bmc(task) if type(task) == BmcTask else runner.rf_bmc(task)
             result_queue.put((task, result))
             print_debug(f"Ran {task} returning {result} which took {perf_counter() - s:.3f} seconds")
 
@@ -201,7 +201,7 @@ class MultiProcessingIntegratorBase(
 
                         # add all results to the store
                         Thread(
-                            target=scheduler.store.add_rf_bmc_results,
+                            target=scheduler.store.add_results,
                             kwargs={
                                 "task_results": task_results,
                             },

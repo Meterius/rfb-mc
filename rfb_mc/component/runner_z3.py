@@ -4,7 +4,7 @@ from typing import NamedTuple, Optional, List, Tuple, Dict, cast
 from rfb_mc.component.helper.z3_helper import clone_expression, deserialize_expression, \
     serialize_expression
 from rfb_mc.runner import RunnerBase
-from rfb_mc.types import Params, RfBmcTask, RfBmcResult
+from rfb_mc.types import Params, RfBmcTask, RfBmcResult, BmcResult, BmcTask
 
 FormulaParamsZ3 = NamedTuple("FormulaParamsZ3", [("formula", z3.BoolRef), ("variables", List[z3.BitVecRef])])
 
@@ -20,8 +20,11 @@ class RunnerZ3(RunnerBase[FormulaParamsZ3, RfmiGenerationArgsZ3, z3.BoolRef]):
         super().__init__(params, FormulaParamsZ3(
             # translates the contexts, thus the formula and variables need not be created with the context
             # the z3 runner will use
-            formula=formula_params.formula.translate(z3.main_ctx()),
-            variables=[x.translate(z3.main_ctx()) for x in formula_params.variables],
+            formula=formula_params.formula.translate(z3.main_ctx()) if formula_params.formula.ctx != z3.main_ctx() else formula_params.formula,
+            variables=[
+                x.translate(z3.main_ctx()) if x.ctx != z3.main_ctx() else x
+                for x in formula_params.variables
+            ],
         ))
 
         # maps q to a solver that has a q-times conjunction asserted
@@ -116,6 +119,14 @@ class RunnerZ3(RunnerBase[FormulaParamsZ3, RfmiGenerationArgsZ3, z3.BoolRef]):
         solver.pop()
 
         return RfBmcResult(bmc=bmc)
+
+    def bmc(self, task: BmcTask) -> BmcResult:
+        solver, variables = self._get_solver(1)
+
+        # is None if solver has at least a models
+        bmc = self._z3_bounded_model_count(solver, variables, task.a)
+
+        return BmcResult(bmc=bmc)
 
 
 SerializedFormulaParamsZ3 = NamedTuple(

@@ -1,11 +1,10 @@
 from ast import literal_eval
 from decimal import Decimal
-from operator import itemgetter
-from typing import Dict, Tuple, TypedDict, Any, Literal, Counter
+from typing import Dict, Tuple, TypedDict, Any, Literal, Counter, Optional
 
 from rfb_mc.restrictive_formula_module import get_restrictive_formula_module
 from rfb_mc.store import StoreData
-from rfb_mc.types import RfBmcTask, RfBmcResult, Params
+from rfb_mc.types import RfBmcTask, RfBmcResult, Params, BmcTask, BmcResult
 
 
 def v1_encode_rf_bmc_task(task: RfBmcTask) -> str:
@@ -56,6 +55,44 @@ def v1_decode_rf_bmc_task_result(task_result: str) -> Tuple[RfBmcTask, RfBmcResu
     )
 
 
+def v1_encode_bmc_task(task: BmcTask) -> str:
+    return repr((
+        task.a,
+    ))
+
+
+def v1_decode_bmc_task(task: str) -> BmcTask:
+    a, = literal_eval(task)
+
+    return BmcTask(
+        a=a,
+    )
+
+
+def v1_encode_bmc_result(result: BmcResult) -> str:
+    return repr(tuple(result))
+
+
+def v1_decode_bmc_result(result: str) -> BmcResult:
+    return BmcResult(*literal_eval(result))
+
+
+def v1_encode_bmc_task_result(task_result: Tuple[BmcTask, BmcResult]) -> str:
+    return repr((
+        v1_encode_bmc_task(task_result[0]),
+        v1_encode_bmc_result(task_result[1])
+    ))
+
+
+def v1_decode_bmc_task_result(task_result: str) -> Tuple[BmcTask, BmcResult]:
+    task, result = literal_eval(task_result)
+
+    return (
+        v1_decode_bmc_task(task),
+        v1_decode_bmc_result(result),
+    )
+
+
 SerializedV1RfBmcResultsMap = Dict[str, Decimal]
 
 
@@ -74,10 +111,10 @@ def v1_decode_rf_bmc_results_map(
 ) -> Dict[RfBmcTask, Counter[RfBmcResult]]:
     task_results = list(map(v1_decode_rf_bmc_task_result, rf_bmc_results_map.keys()))
 
-    tasks = set(map(itemgetter(0), task_results))
+    tasks = set([task for task, _ in task_results])
 
     return {
-        task: Counter({
+        task: Counter[RfBmcResult]({
             result: int(rf_bmc_results_map[v1_encode_rf_bmc_task_result((task, result))])
             for result in [task_result[1] for task_result in task_results if task_result[0] == task]
         })
@@ -100,7 +137,7 @@ def v1_encode_params(params: Params) -> SerializedV1Params:
 
 def v1_decode_params(params: SerializedV1Params) -> Params:
     return Params(
-        bit_width_counter=Counter({
+        bit_width_counter=Counter[int]({
             int(key): int(params["bit_width_counter"][key])
             for key in params["bit_width_counter"]
         })
@@ -111,6 +148,7 @@ class SerializedV1StoreData(TypedDict):
     version: Literal[1]
     params: SerializedV1Params
     rf_bmc_results_map: SerializedV1RfBmcResultsMap
+    bmc_task_result: Optional[str]
 
 
 def v1_encode_store_data(data: StoreData) -> SerializedV1StoreData:
@@ -119,14 +157,16 @@ def v1_encode_store_data(data: StoreData) -> SerializedV1StoreData:
         params=v1_encode_params(data.params),
         rf_bmc_results_map=v1_encode_rf_bmc_results_map(
             data.rf_bmc_results_map,
-        )
+        ),
+        bmc_task_result=None if data.bmc_task_result is None else v1_encode_bmc_task_result(data.bmc_task_result),
     )
 
 
 def v1_decode_store_data(data: SerializedV1StoreData) -> StoreData:
     return StoreData(
         params=v1_decode_params(data["params"]),
-        rf_bmc_results_map=v1_decode_rf_bmc_results_map(data["rf_bmc_results_map"])
+        rf_bmc_results_map=v1_decode_rf_bmc_results_map(data["rf_bmc_results_map"]),
+        bmc_task_result=None if data["bmc_task_result"] is None else v1_decode_bmc_task_result(data["bmc_task_result"]),
     )
 
 

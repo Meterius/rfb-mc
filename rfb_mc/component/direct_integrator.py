@@ -1,11 +1,13 @@
 from abc import abstractmethod
 from datetime import datetime
 from time import perf_counter, sleep
-from typing import Generic, Iterable, Type, Any
+from typing import Generic, Iterable, Type, Any, Tuple
 from rfb_mc.runner import FormulaParams, RunnerBase
 from rfb_mc.integrator import IntegratorBase, IntermediateResult, Result
 from rfb_mc.scheduler import SchedulerBase
 from threading import Thread
+
+from rfb_mc.types import RfBmcTask, BmcTask, BmcResult, RfBmcResult
 
 
 class DirectIntegratorBase(
@@ -67,14 +69,20 @@ class DirectIntegratorBase(
                     task = next(algorithm_yield.required_tasks.elements())
 
                     s = perf_counter()
-                    result = runner.rf_bmc(task)
-                    self._print_debug(f"Ran {task} returning {result} which took {perf_counter() - s:.3f} seconds")
+
+                    if type(task) == BmcTask:
+                        task_result: Tuple[BmcTask, BmcResult] = (task, runner.bmc(task))
+                    else:
+                        task_result: Tuple[RfBmcTask, RfBmcResult] = (task, runner.rf_bmc(task))
+
+                    self._print_debug(f"Ran {task_result[0]} returning {task_result[1]}"
+                                      f" which took {perf_counter() - s:.3f} seconds")
 
                     # starts result synchronization with store asynchronously
                     Thread(
-                        target=scheduler.store.add_rf_bmc_results,
+                        target=scheduler.store.add_results,
                         kwargs={
-                          "task_results": [(task, result)],
+                          "task_results": [task_result],
                         },
                         daemon=True,
                     ).start()
