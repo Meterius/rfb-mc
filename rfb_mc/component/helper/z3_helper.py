@@ -64,7 +64,11 @@ def recreate_variable(key: str, variable: z3.ExprRef) -> z3.ExprRef:
     return z3.Const(f"{key}_{variable}", variable.sort())
 
 
-def clone_expression(expression: z3.ExprRef, q: int) -> CloneExpressionOutput:
+def clone_expression(
+    expression: z3.ExprRef,
+    q: int,
+    required_variables: Optional[List[z3.ExprRef]] = None,
+) -> CloneExpressionOutput:
     """
     Clones expression by generating q instances of the expression where each
     variable is substituted by a unique newly generated variable for each variable in each clone.
@@ -73,9 +77,11 @@ def clone_expression(expression: z3.ExprRef, q: int) -> CloneExpressionOutput:
     listed in the same order as the clone list.
     :param expression: Expression to be cloned
     :param q: Amount of clones created
+    :param required_variables: Variables that should be cloned and put into the var_map even if they are not
+    contained in the expression.
     """
 
-    variables = get_variables(expression)
+    variables = set(get_variables(expression)).union(set(required_variables or []))
 
     var_map = {
         x: [recreate_variable(f"clone{{{i}}}", x) for i in range(q)] for x in variables

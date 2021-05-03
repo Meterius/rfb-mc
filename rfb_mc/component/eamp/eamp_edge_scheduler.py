@@ -8,7 +8,7 @@ from rfb_mc.component.eamp.utility import multi_majority_vote_iteration_count_to
     majority_vote_error_probability, probability_of_correctness
 from rfb_mc.scheduler import SchedulerBase
 from rfb_mc.store import StoreBase
-from rfb_mc.types import RfBmcTask, RfBmcResult
+from rfb_mc.types import RfBmcTask, RfBmcResult, BmcTask, BmcResult
 
 EampEdgeInterval = NamedTuple("EampEdgeInterval", [
     ("interval", Tuple[int, int]),
@@ -199,7 +199,27 @@ class EampEdgeScheduler(SchedulerBase[EampEdgeInterval, EampEdgeInterval, EampRf
                     c[j - 1] = 1
                     j -= 1
 
-        # TODO: implement BMC tasks and catch case of c_pos = None
+        if c_pos is None:
+            s = int(ceil(g ** (1 / self.q)))
+
+            bmc_task_result: Optional[Tuple[BmcTask, BmcResult]] = self.store.data.bmc_task_result
+
+            while bmc_task_result is None or bmc_task_result[0].a < s:
+                yield EampEdgeScheduler.AlgorithmYield(
+                    required_tasks=Counter([BmcTask(a=s)]),
+                    predicted_required_tasks=Counter(),
+                    intermediate_result=get_edge_interval(),
+                )
+
+                bmc_task_result = self.store.data.bmc_task_result
+
+            if bmc_task_result[1].bmc is not None and bmc_task_result[1].bmc < s:
+                return EampEdgeInterval(
+                    interval=(bmc_task_result[1].bmc, bmc_task_result[1].bmc),
+                    confidence=Fraction(1),
+                )
+            else:
+                min_model_count = max(min_model_count, s)
 
         return get_edge_interval()
 

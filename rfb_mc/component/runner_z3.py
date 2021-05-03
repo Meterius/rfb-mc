@@ -37,7 +37,7 @@ class RunnerZ3(RunnerBase[FormulaParamsZ3, RfmiGenerationArgsZ3, z3.BoolRef]):
         """
 
         if q not in self._solver_map:
-            formula_clone = clone_expression(self.formula_params.formula, q)
+            formula_clone = clone_expression(self.formula_params.formula, q, self.formula_params.variables)
 
             variables = [
                 cast(z3.BitVecRef, q_bv)
