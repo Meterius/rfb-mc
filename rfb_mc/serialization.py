@@ -1,5 +1,4 @@
 from ast import literal_eval
-from decimal import Decimal
 from typing import Dict, Tuple, TypedDict, Any, Literal, Counter, Optional
 
 from rfb_mc.restrictive_formula_module import get_restrictive_formula_module
@@ -93,14 +92,14 @@ def v1_decode_bmc_task_result(task_result: str) -> Tuple[BmcTask, BmcResult]:
     )
 
 
-SerializedV1RfBmcResultsMap = Dict[str, Decimal]
+SerializedV1RfBmcResultsMap = Dict[str, int]
 
 
 def v1_encode_rf_bmc_results_map(
     rf_bmc_results_map: Dict[RfBmcTask, Counter[RfBmcResult]],
 ) -> SerializedV1RfBmcResultsMap:
     return {
-        v1_encode_rf_bmc_task_result((task, result)): Decimal(rf_bmc_results_map[task][result])
+        v1_encode_rf_bmc_task_result((task, result)): rf_bmc_results_map[task][result]
         for task in rf_bmc_results_map
         for result in rf_bmc_results_map[task]
     }
@@ -123,13 +122,13 @@ def v1_decode_rf_bmc_results_map(
 
 
 class SerializedV1Params(TypedDict):
-    bit_width_counter: Dict[str, Decimal]
+    bit_width_counter: Dict[str, int]
 
 
 def v1_encode_params(params: Params) -> SerializedV1Params:
     return {
         "bit_width_counter": {
-            str(key): Decimal(params.bit_width_counter[key])
+            str(key): params.bit_width_counter[key]
             for key in params.bit_width_counter.keys()
         }
     }
@@ -144,6 +143,8 @@ def v1_decode_params(params: SerializedV1Params) -> Params:
     )
 
 
+# Python representation of the store data with native types,
+# i.e. processable using pickle, repr/literal_eval and json.
 class SerializedV1StoreData(TypedDict):
     version: Literal[1]
     params: SerializedV1Params

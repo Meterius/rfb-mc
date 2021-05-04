@@ -3,6 +3,7 @@ from datetime import datetime
 from multiprocessing import Lock, Queue, Process
 from queue import Empty
 from time import perf_counter, sleep
+import os
 from collections import Counter
 from threading import Thread
 from typing import Generic, Iterable, Type, TypeVar, Any
@@ -108,7 +109,7 @@ class MultiProcessingIntegratorBase(
 
             task = task_queue.get()
 
-    def __init__(self, formula_params: FormulaParams, worker_count: int):
+    def __init__(self, formula_params: FormulaParams, worker_count: int = os.cpu_count()):
         super().__init__(formula_params)
         self.worker_count = worker_count
 
