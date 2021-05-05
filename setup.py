@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="rfb_mc",
-    version="0.0.14",
+    version="0.0.15",
     author="Jonah Leander Hoff",
     author_email="jonah-hoff@outlook.com",
     description="Performs model counting using restrictive formulas",

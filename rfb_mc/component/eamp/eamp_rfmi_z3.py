@@ -59,7 +59,7 @@ class EampRfmiZ3(RestrictiveFormulaModuleImplementationBase[EampInstanceParams, 
             else:
                 raise RuntimeError(f"Not implemented transform method {instance_params.params.transform_method}")
 
-        def make_hash_equation(pj: int, var_b: Tuple[int], b1: int):
+        def make_hash_equation(pj: int, var_b: Tuple[int], b1: int, b2: int):
             domain_bit_count = int(ceil(log2(pj)))
             bc = int(ceil(log2(pj + 1)))
             slices = get_slices(domain_bit_count)
@@ -69,10 +69,10 @@ class EampRfmiZ3(RestrictiveFormulaModuleImplementationBase[EampInstanceParams, 
                     z3.ZeroExt(bc - s.size(), s) * z3.BitVecVal(var_b[i], bc) for i, s in enumerate(slices)
                 ]) + z3.BitVecVal(b1, bc),
                 z3.BitVecVal(pj, bc)
-            ) == z3.BitVecVal(0, bc)
+            ) == z3.BitVecVal(b2, bc)
 
         return z3.And([
-            make_hash_equation(instance_params.p[j], var_b, b1)
+            make_hash_equation(instance_params.p[j], var_b, b1, b2)
             for j in range(len(instance_params.p))
-            for var_b, b1 in instance_params.coefficients[j]
+            for var_b, b1, b2 in instance_params.coefficients[j]
         ])

@@ -1,6 +1,6 @@
 from enum import Enum, unique
 from math import prod, log2, ceil
-from typing import NamedTuple, Tuple, Any
+from typing import NamedTuple, Tuple, Any, List
 from rfb_mc.restrictive_formula_module import RestrictiveFormulaModuleBase
 from rfb_mc.runner import RunnerRandom
 from rfb_mc.types import Params
@@ -23,7 +23,7 @@ EampParamProperties = NamedTuple("EampParamProperties", [
 
 EampInstanceParams = NamedTuple("EampInstanceParams", [
     ("params", EampParams),
-    ("coefficients", Tuple[Tuple[Tuple[Tuple[int, ...], int], ...], ...]),
+    ("coefficients", Tuple[Tuple[Tuple[Tuple[int, ...], int, int], ...], ...]),
     ("p", Tuple[int, ...]),
 ])
 
@@ -75,7 +75,7 @@ class EampRfm(RestrictiveFormulaModuleBase[EampParams, EampParamProperties, Eamp
         q: int,
         random: RunnerRandom,
     ) -> EampInstanceParams:
-        variables = []
+        variables: List[int] = []
 
         for size in sorted(params.bit_width_counter.keys()):
             # add amount of variables with size q-times as they are cloned q-times
@@ -111,7 +111,7 @@ class EampRfm(RestrictiveFormulaModuleBase[EampParams, EampParamProperties, Eamp
             else:
                 raise RuntimeError(f"Not implemented transform method {restrictive_formula_params.transform_method}")
 
-        def generate_coefficients(j: int) -> Tuple[Tuple[int, ...], int]:
+        def generate_coefficients(j: int) -> Tuple[Tuple[int, ...], int, int]:
             pj = restrictive_formula_params.p[j]
 
             return (
@@ -122,6 +122,7 @@ class EampRfm(RestrictiveFormulaModuleBase[EampParams, EampParamProperties, Eamp
                         )
                     )
                 ]),
+                random.get_random_int(0, pj - 1),
                 random.get_random_int(0, pj - 1),
             )
 
