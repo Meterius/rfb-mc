@@ -1,15 +1,16 @@
 import unittest
+from typing import Optional
 import z3
 from collections import Counter
 from fractions import Fraction
 from math import sqrt
-
 from rfb_mc.component.direct_integrator_z3 import DirectIntegratorZ3
 from rfb_mc.component.eamp.eamp_rfmi_z3 import EampRfmiZ3
 from rfb_mc.component.eamp.eamp_edge_scheduler import EampEdgeScheduler, EampEdgeInterval
 from rfb_mc.component.runner_z3 import RunnerZ3, FormulaParamsZ3
 from rfb_mc.component.in_memory_store import InMemoryStore
 from rfb_mc.store import StoreData
+from rfb_mc.test.helper import count_models_by_branching
 from rfb_mc.types import Params
 
 
@@ -44,82 +45,70 @@ class TestEampEdgeScheduler(unittest.TestCase):
             msg="Final confidence is at least the desired confidence"
         )
 
-    def test_run(self):
-        RunnerZ3.register_restrictive_formula_module_implementation(EampRfmiZ3)
-
-        for upper_bound in (0, 1, 10, 100):
-            a = 100
-            q = 2
-            confidence = Fraction(0.95)
-
-            store = InMemoryStore(
-                data=StoreData(
-                    params=Params(
-                        bit_width_counter=Counter([4, 8])
-                    )
-                )
-            )
-
-            scheduler = EampEdgeScheduler(
-                store=store,
-                confidence=confidence,
-                a=a,
-                q=q,
-            )
-
-            x, y = z3.BitVec("x", 4), z3.BitVec("y", 8)
-
-            formula: z3.BoolRef = z3.ULT(z3.ZeroExt(4, x) + y, z3.BitVecVal(upper_bound, 8))
-
-            integrator = DirectIntegratorZ3(
-                formula_params=FormulaParamsZ3(
-                    formula=formula,
-                    variables=[x, y],
-                )
-            )
-
-            result: EampEdgeInterval = integrator.run_all(scheduler)
-
-            # TODO: investigate multiplicative gap from eamp edge scheduler being possibly not correct
-            # self.assert_eamp_edge_scheduler_result(
-            #     result, a, q, confidence,
-            # )
-
-        a = 100
-        q = 1
-        confidence = Fraction(0.95)
+    def assert_eamp_edge_scheduler_execution(
+        self,
+        a: int,
+        q: int,
+        confidence: float,
+        formula_params: FormulaParamsZ3,
+        model_count: Optional[int] = None,
+    ):
+        model_count = model_count if model_count is not None else \
+            count_models_by_branching(formula_params.formula, formula_params.variables)
 
         store = InMemoryStore(
             data=StoreData(
                 params=Params(
-                    bit_width_counter=Counter([12, 8])
+                    bit_width_counter=Counter([x.size() for x in formula_params.variables])
                 )
             )
         )
 
         scheduler = EampEdgeScheduler(
             store=store,
-            confidence=confidence,
+            confidence=Fraction(confidence),
             a=a,
             q=q,
         )
 
-        x, y = z3.BitVec("x", 12), z3.BitVec("y", 8)
-
-        formula: z3.BoolRef = z3.ULT(y, 100)
-
         integrator = DirectIntegratorZ3(
-            formula_params=FormulaParamsZ3(
-                formula=formula,
-                variables=[x, y],
-            )
+            formula_params=formula_params
         )
 
         result: EampEdgeInterval = integrator.run_all(scheduler)
 
-        self.assert_eamp_edge_scheduler_result(
-            result, a, q, confidence,
+        self.assertTrue(
+            result.interval[0] <= model_count <= result.interval[1],
+            msg=f"The model count {model_count} is contained in the final interval {result.interval}"
         )
+
+        # self.assert_eamp_edge_scheduler_result(
+        #     result, a, q, Fraction(confidence),
+        # )
+
+    def test_run(self):
+        RunnerZ3.register_restrictive_formula_module_implementation(EampRfmiZ3)
+
+        for upper_bound in (0, 1, 50):
+            x, y = z3.BitVec("x", 4), z3.BitVec("y", 8)
+            formula: z3.BoolRef = z3.ULT(z3.ZeroExt(4, x) + y, z3.BitVecVal(upper_bound, 8))
+            self.assert_eamp_edge_scheduler_execution(100, 2, 0.99, FormulaParamsZ3(formula=formula, variables=[x, y]))
+
+        x, y = z3.BitVec("x", 8), z3.BitVec("y", 8)
+        formula: z3.BoolRef = z3.ULT(y, 100)
+        model_count = (2 ** 8) * 100
+
+        self.assert_eamp_edge_scheduler_execution(100, 1, 0.99, FormulaParamsZ3(
+            formula=formula, variables=[x, y]
+        ), model_count)
+
+        zs = [z3.BitVec(f"z{idx}", 1) for idx in range(50)]
+        formula: z3.BoolRef = z3.And([zs[idx] == 1 for idx in range(25)])
+        model_count = 2 ** 25
+
+        self.assert_eamp_edge_scheduler_execution(100, 1, 0.99, FormulaParamsZ3(
+            formula=formula, variables=zs
+        ), model_count)
 
     def test_get_g_and_lg(self):
         for a in (1, 10, 100, 1000, 10000000):
