@@ -1,19 +1,15 @@
 from fractions import Fraction
 from math import sqrt, prod, log2, ceil, floor, log
-from typing import NamedTuple, Tuple, Optional, Iterable, List
+from typing import Tuple, Optional, Iterable, List
 from collections import Counter
 from rfb_mc.component.eamp.primes import get_pj
 from rfb_mc.component.eamp.eamp_rfm import EampRfm, EampParams, EampTransformMethod
+from rfb_mc.component.eamp.types import EampEdgeInterval
 from rfb_mc.component.eamp.utility import multi_majority_vote_iteration_count_to_ensure_beta, \
     majority_vote_error_probability, probability_of_correctness
 from rfb_mc.scheduler import SchedulerBase
 from rfb_mc.store import StoreBase
 from rfb_mc.types import RfBmcTask, RfBmcResult, BmcTask, BmcResult
-
-EampEdgeInterval = NamedTuple("EampEdgeInterval", [
-    ("interval", Tuple[int, int]),
-    ("confidence", Fraction),
-])
 
 
 class EampEdgeScheduler(SchedulerBase[EampEdgeInterval, EampEdgeInterval, EampRfm]):
@@ -153,12 +149,10 @@ class EampEdgeScheduler(SchedulerBase[EampEdgeInterval, EampEdgeInterval, EampRf
                 remaining = max(0, r - (positive_voters + negative_voters))
 
                 if positive_voters >= negative_voters and positive_voters >= negative_voters + remaining:
-                    r_eff = positive_voters + negative_voters + abs(negative_voters - positive_voters)
-                    return True, majority_vote_error_probability(alpha, r_eff)
+                    return True, majority_vote_error_probability(alpha, r)
 
                 if negative_voters > positive_voters and negative_voters > positive_voters + remaining:
-                    r_eff = positive_voters + negative_voters + abs(negative_voters - positive_voters)
-                    return False, majority_vote_error_probability(alpha, r_eff)
+                    return False, majority_vote_error_probability(alpha, r)
 
                 yield EampEdgeScheduler.AlgorithmYield(
                     required_tasks=Counter(remaining * [rf_bmc_task]),
