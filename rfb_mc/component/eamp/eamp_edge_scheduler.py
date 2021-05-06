@@ -27,13 +27,22 @@ class EampEdgeScheduler(SchedulerBase[EampEdgeInterval, EampEdgeInterval, EampRf
         assert a >= 1, "a >= 1"
         assert q >= 1, "q >= 1"
         assert 0 <= confidence < 1, "Confidence is < 1 and >= 0"
+        assert min_model_count is None or 0 <= min_model_count, "Min model count is at least 0"
+        assert max_model_count is None or min_model_count is None or min_model_count <= max_model_count, \
+            "Min model count is at most max model count"
+
+        theo_max_model_count = prod([
+            2 ** (bit_width * count) for bit_width, count in self.store.data.params.bit_width_counter.items()
+        ])
+
+        assert min_model_count is None or min_model_count <= theo_max_model_count, \
+            "Min model count is at most theoretical max model count"
 
         self.confidence: Fraction = confidence
         self.a: int = a
         self.q: int = q
-        self.max_model_count: int = max_model_count if max_model_count is not None else prod([
-            2 ** (bit_width * count) for bit_width, count in self.store.data.params.bit_width_counter.items()
-        ])
+        self.max_model_count: int = min(max_model_count, theo_max_model_count) \
+            if max_model_count is not None else theo_max_model_count
         self.min_model_count: int = min_model_count if min_model_count is not None else 0
 
     def _run_algorithm_once(self):
@@ -42,7 +51,9 @@ class EampEdgeScheduler(SchedulerBase[EampEdgeInterval, EampEdgeInterval, EampRf
 
         g, lg = self.get_g_and_lg(self.a)
 
-        cn = max(int(floor(log2(log2(self.max_model_count ** self.q / lg) + 1) + 1)), 1)
+        cn = int(
+            floor(log2(log2(self.max_model_count ** self.q / lg) + 1) + 1)
+        ) if self.max_model_count ** self.q / lg >= 1 else 1
 
         p = tuple([
             get_pj(j) for j in range(cn)
