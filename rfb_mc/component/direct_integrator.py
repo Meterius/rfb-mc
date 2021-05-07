@@ -63,6 +63,7 @@ class DirectIntegratorBase(
                 # if the intermediate result has changed, it should be published via a yield
                 if algorithm_yield.intermediate_result != prev_intermediate_result:
                     prev_intermediate_result = algorithm_yield.intermediate_result
+                    self._print_debug(f"Intermediate Result: {prev_intermediate_result}")
                     yield prev_intermediate_result
 
                 if sum(algorithm_yield.required_tasks.values()) > 0:

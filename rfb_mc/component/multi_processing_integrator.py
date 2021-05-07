@@ -164,9 +164,7 @@ class MultiProcessingIntegratorBase(
                     # if the intermediate result has changed, it should be published via a yield
                     if algorithm_yield.intermediate_result != prev_intermediate_result:
                         prev_intermediate_result = algorithm_yield.intermediate_result
-
                         print_debug(f"Intermediate Result: {prev_intermediate_result}")
-
                         yield prev_intermediate_result
 
                     # determine how many tasks should be queued, by first considering what tasks
