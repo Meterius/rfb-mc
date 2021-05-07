@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar, Hashable, Any, Dict, Type
-from rfb_mc.runner_random import RunnerRandom
 from rfb_mc.types import Params
 
 RestrictiveFormulaParams = TypeVar("RestrictiveFormulaParams", bound=Hashable)
@@ -77,7 +76,6 @@ class RestrictiveFormulaModuleBase(
         params: Params,
         restrictive_formula_params: RestrictiveFormulaParams,
         q: int,
-        random: RunnerRandom,
     ) -> RestrictiveFormulaInstanceParams:
         """
         Generate the restrictive formula instance params for the given params using randomness from the random runner

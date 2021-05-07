@@ -144,7 +144,7 @@ class DynamodbStore(StoreBase):
                         ":bmc_task_a": dyn_task_result["task"]["a"],
                     },
                 )
-            except self.table.meta.client.exceptions.ConditionalCheckFailedException as err:
+            except self.table.meta.client.exceptions.ConditionalCheckFailedException:
                 return None
 
         with ThreadPoolExecutor() as executor:

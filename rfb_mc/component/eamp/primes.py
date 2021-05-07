@@ -4,16 +4,19 @@ import os
 import random
 
 
-primes_dict_file_name = os.path.join(os.path.dirname(__file__), "primes.txt")
+lowest_prime_above_or_equal_power_of_power_of_two_dic_file_name = os.path.join(
+    os.path.dirname(__file__),
+    "lowest_prime_above_or_equal_power_of_power_of_two_dict.txt"
+)
 
 
 @lru_cache(1)
-def read_primes_dict() -> Dict[int, int]:
+def read_lowest_prime_above_or_equal_power_of_power_of_two_dict() -> Dict[int, int]:
     def parse_line(line: str) -> Tuple[int, int]:
         ns, ps = line.split(" ")
         return int(ns, 10), int(ps, 10)
 
-    with open(primes_dict_file_name, "r") as f:
+    with open(lowest_prime_above_or_equal_power_of_power_of_two_dic_file_name, "r") as f:
         lines = f.readlines()
 
     return {
@@ -21,23 +24,25 @@ def read_primes_dict() -> Dict[int, int]:
     }
 
 
-def get_pj(j: int) -> int:
+def get_lowest_prime_above_or_equal_power_of_power_of_two(j: int) -> int:
     """
     Returns the smallest prime that above or equal 2 ** (2 ** j)
     """
 
-    primes_dict = read_primes_dict()
+    primes_dict = read_lowest_prime_above_or_equal_power_of_power_of_two_dict()
 
     if j in primes_dict:
         return primes_dict[j]
     else:
-        raise ValueError(f"Eamp has insufficient primes for {j} >= {max(primes_dict.keys())}")
+        raise ValueError(f"No stored primes for the lowest prime above or equal 2 ** (2 ** {j}),"
+                         f" the highest available is for 2 ** (2 ** {max(primes_dict.keys())})")
 
 
 def miller_rabin(n: int, k: int = 40) -> bool:
     # Implementation uses the Miller-Rabin Primality Test
     # The optimal number of rounds for this test is 40
-    # See http://stackoverflow.com/questions/6325576/how-many-iterations-of-rabin-miller-should-i-use-for-cryptographic-safe-primes
+    # See http://stackoverflow.com/questions/6325576
+    #     /how-many-iterations-of-rabin-miller-should-i-use-for-cryptographic-safe-primes
     # for justification
 
     # If number is even, it's a composite number

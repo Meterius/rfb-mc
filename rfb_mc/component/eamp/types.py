@@ -1,7 +1,8 @@
 from fractions import Fraction
-from typing import NamedTuple, Tuple
+from typing import NamedTuple
 
-EampEdgeInterval = NamedTuple("EampEdgeInterval", [
-    ("interval", Tuple[int, int]),
+ProbabilisticInterval = NamedTuple("ProbabilisticInterval", [
+    ("lower_bound", int),
+    ("upper_bound", int),
     ("confidence", Fraction),
 ])

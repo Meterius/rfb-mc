@@ -3,7 +3,6 @@ from typing import TypeVar, Generic, Dict, Any, Type
 from rfb_mc.restrictive_formula_module import register_restrictive_formula_module
 from rfb_mc.restrictive_formula_module_implementation import RestrictiveFormulaModuleImplementationBase, \
     RestrictiveFormulaInstance
-from rfb_mc.runner_random import RunnerRandom
 from rfb_mc.types import Params, RfBmcTask, RfBmcResult, BmcResult, BmcTask
 
 FormulaParams = TypeVar("FormulaParams")
@@ -14,10 +13,6 @@ RestrictiveFormulaInstanceGenerationArgs = TypeVar("RestrictiveFormulaInstanceGe
 class RunnerBase(ABC, Generic[FormulaParams, RestrictiveFormulaInstanceGenerationArgs, RestrictiveFormulaInstance]):
     def __init__(self, params: Params, formula_params: FormulaParams):
         self.check_params_and_formula_params_compatibility(params, formula_params)
-
-        # random class used to introduce randomness to the restrictive formula implementors
-        self.random: RunnerRandom = RunnerRandom()
-
         self.params: Params = params
         self.formula_params: FormulaParams = formula_params
 
@@ -63,7 +58,7 @@ class RunnerBase(ABC, Generic[FormulaParams, RestrictiveFormulaInstanceGeneratio
         rfm = rfmi.get_restrictive_formula_module()
 
         instance_params = rfm.generate_restrictive_formula_instance_params(
-            self.params, rfm_formula_params, q, self.random,
+            self.params, rfm_formula_params, q,
         )
         instance_args = self.get_restrictive_formula_instance_generation_args(q)
 

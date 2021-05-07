@@ -6,7 +6,8 @@ from fractions import Fraction
 from math import sqrt
 from rfb_mc.component.direct_integrator_z3 import DirectIntegratorZ3
 from rfb_mc.component.eamp.eamp_rfmi_z3 import EampRfmiZ3
-from rfb_mc.component.eamp.eamp_edge_scheduler import EampEdgeScheduler, EampEdgeInterval
+from rfb_mc.component.eamp.eamp_edge_scheduler import EampEdgeScheduler
+from rfb_mc.component.eamp.types import ProbabilisticInterval
 from rfb_mc.component.runner_z3 import RunnerZ3, FormulaParamsZ3
 from rfb_mc.component.in_memory_store import InMemoryStore
 from rfb_mc.store import StoreData
@@ -17,30 +18,30 @@ from rfb_mc.types import Params
 class TestEampEdgeScheduler(unittest.TestCase):
     def assert_eamp_edge_scheduler_result(
         self,
-        edge_interval: EampEdgeInterval,
+        interval: ProbabilisticInterval,
         a: int,
         q: int,
         confidence: Fraction,
     ):
         g, lg = EampEdgeScheduler.get_g_and_lg(a)
 
-        if edge_interval.interval[0] != edge_interval.interval[1]:
+        if interval.lower_bound != interval.upper_bound:
             self.assertLessEqual(
-                edge_interval.interval[1] / edge_interval.interval[0],
+                interval.upper_bound / interval.lower_bound,
                 (2 * lg / g) ** (1 / q),
                 msg="Final interval is either only a single value or the multiplicative "
-                    "gap is below (2 * G / g) ** (1 / q)"
+                    "gap is at most (2 * G / g) ** (1 / q)"
             )
 
             self.assertLessEqual(
-                edge_interval.interval[1] / edge_interval.interval[0],
+                interval.upper_bound / interval.lower_bound,
                 EampEdgeScheduler.get_upper_bound_for_multiplicative_gap_of_result(a, q),
                 msg="Final interval is either only a single value or the multiplicative "
                     "gap is below the given get_upper_bound_for_multiplicative_gap_of_result"
             )
 
         self.assertGreaterEqual(
-            edge_interval.confidence,
+            interval.confidence,
             confidence,
             msg="Final confidence is at least the desired confidence"
         )
@@ -75,16 +76,17 @@ class TestEampEdgeScheduler(unittest.TestCase):
             formula_params=formula_params
         )
 
-        result: EampEdgeInterval = integrator.run_all(scheduler)
+        result: ProbabilisticInterval = integrator.run_all(scheduler)
 
         self.assertTrue(
-            result.interval[0] <= model_count <= result.interval[1],
-            msg=f"The model count {model_count} is contained in the final interval {result.interval}"
+            result.lower_bound <= model_count <= result.upper_bound,
+            msg=f"The model count {model_count} is contained in the final "
+                f"interval [{result.lower_bound}, {result.upper_bound}]"
         )
 
-        # self.assert_eamp_edge_scheduler_result(
-        #     result, a, q, Fraction(confidence),
-        # )
+        self.assert_eamp_edge_scheduler_result(
+            result, a, q, Fraction(confidence),
+        )
 
     def test_run(self):
         RunnerZ3.register_restrictive_formula_module_implementation(EampRfmiZ3)

@@ -197,7 +197,7 @@ class MultiProcessingIntegratorBase(
 
                             try:
                                 task_result = result_queue.get_nowait()
-                            except Empty as err:
+                            except Empty:
                                 task_result = None
 
                         # add all results to the store

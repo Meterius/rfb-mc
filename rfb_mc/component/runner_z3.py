@@ -20,7 +20,8 @@ class RunnerZ3(RunnerBase[FormulaParamsZ3, RfmiGenerationArgsZ3, z3.BoolRef]):
         super().__init__(params, FormulaParamsZ3(
             # translates the contexts, thus the formula and variables need not be created with the context
             # the z3 runner will use
-            formula=formula_params.formula.translate(z3.main_ctx()) if formula_params.formula.ctx != z3.main_ctx() else formula_params.formula,
+            formula=formula_params.formula.translate(z3.main_ctx())
+            if formula_params.formula.ctx != z3.main_ctx() else formula_params.formula,
             variables=[
                 x.translate(z3.main_ctx()) if x.ctx != z3.main_ctx() else x
                 for x in formula_params.variables

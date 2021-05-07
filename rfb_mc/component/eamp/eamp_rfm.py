@@ -1,8 +1,8 @@
+import random
 from enum import Enum, unique
 from math import prod, log2, ceil
 from typing import NamedTuple, Tuple, Any, List
 from rfb_mc.restrictive_formula_module import RestrictiveFormulaModuleBase
-from rfb_mc.runner import RunnerRandom
 from rfb_mc.types import Params
 
 
@@ -73,7 +73,6 @@ class EampRfm(RestrictiveFormulaModuleBase[EampParams, EampParamProperties, Eamp
         params: Params,
         restrictive_formula_params: EampParams,
         q: int,
-        random: RunnerRandom,
     ) -> EampInstanceParams:
         variables: List[int] = []
 
@@ -116,14 +115,14 @@ class EampRfm(RestrictiveFormulaModuleBase[EampParams, EampParamProperties, Eamp
 
             return (
                 tuple([
-                    random.get_random_int(0, pj - 1) for _ in range(
+                    random.randint(0, pj - 1) for _ in range(
                         get_slice_count(
                             int(ceil(log2(pj)))
                         )
                     )
                 ]),
-                random.get_random_int(0, pj - 1),
-                random.get_random_int(0, pj - 1),
+                random.randint(0, pj - 1),
+                random.randint(0, pj - 1),
             )
 
         return EampInstanceParams(
