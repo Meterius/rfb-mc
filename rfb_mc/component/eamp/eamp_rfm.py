@@ -2,7 +2,7 @@ import random
 from enum import Enum, unique
 from math import prod, log2, ceil
 from typing import NamedTuple, Tuple, Any, List
-from rfb_mc.restrictive_formula_module import RestrictiveFormulaModuleBase
+from rfb_mc.restrictive_formula_module import RestrictiveFormulaModule
 from rfb_mc.types import Params
 
 
@@ -28,7 +28,7 @@ EampInstanceParams = NamedTuple("EampInstanceParams", [
 ])
 
 
-class EampRfm(RestrictiveFormulaModuleBase[EampParams, EampParamProperties, EampInstanceParams]):
+class EampRfm(RestrictiveFormulaModule[EampParams, EampParamProperties, EampInstanceParams]):
     @classmethod
     def get_guid(cls):
         return "eamp-rfm"

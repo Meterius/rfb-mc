@@ -1,23 +1,30 @@
+from fractions import Fraction
 from functools import lru_cache
 from math import sqrt, prod, log2, ceil, floor, log
-from typing import Tuple, Optional, List
+from typing import Tuple, Optional, List, Union
 from rfb_mc.component.eamp.eamp_edge_scheduler_base import EampEdgeSchedulerBase
 from rfb_mc.component.eamp.primes import get_lowest_prime_above_or_equal_power_of_power_of_two
 from rfb_mc.component.eamp.eamp_rfm import EampParams, EampTransformMethod
+from rfb_mc.store import Store
 
 
 class EampEdgeScheduler(EampEdgeSchedulerBase[Tuple[int, List[int]]]):
-    @property
-    @lru_cache(1)
-    def _cn(self):
-        return int(
+    def __init__(
+        self,
+        store: Store,
+        confidence: Union[Fraction, float],
+        a: int,
+        q: int,
+        min_model_count: Optional[int] = None,
+        max_model_count: Optional[int] = None,
+    ):
+        super().__init__(store, confidence, a, q, min_model_count, max_model_count)
+
+        self._cn: int = int(
             floor(log2(log2(self.max_model_count ** self.q / self.lg) + 1) + 1)
         ) if self.max_model_count ** self.q / self.lg >= 1 else 1
 
-    @property
-    @lru_cache(1)
-    def _p(self):
-        return tuple([
+        self._p: Tuple[int, ...] = tuple([
             get_lowest_prime_above_or_equal_power_of_power_of_two(j)
             for j in range(self._cn)
         ])

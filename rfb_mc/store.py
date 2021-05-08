@@ -15,7 +15,7 @@ class StoreData:
     bmc_task_result: Optional[Tuple[BmcTask, BmcResult]] = None
 
 
-class StoreBase(ABC):
+class Store(ABC):
     def __init__(self, data: StoreData):
         self.data = data
         self.data_lock = Lock()
@@ -72,7 +72,10 @@ class StoreBase(ABC):
 
                 self.data.rf_bmc_results_map[task][result] += 1
 
-            if self.data.bmc_task_result is None or self.data.bmc_task_result[0].a <= bmc_task_result[0].a:
+            if (
+                bmc_task_result is not None
+                and (self.data.bmc_task_result is None or self.data.bmc_task_result[0].a <= bmc_task_result[0].a)
+            ):
                 self.data.bmc_task_result = bmc_task_result
 
         self._add_results(bmc_task_result, rf_bmc_task_results)

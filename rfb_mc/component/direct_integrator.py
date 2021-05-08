@@ -1,19 +1,15 @@
 from abc import abstractmethod
 from datetime import datetime
 from time import perf_counter, sleep
-from typing import Generic, Iterable, Type, Any, Tuple
-from rfb_mc.runner import FormulaParams, RunnerBase
-from rfb_mc.integrator import IntegratorBase, IntermediateResult, Result
-from rfb_mc.scheduler import SchedulerBase
+from typing import Generic, Iterable, Type, Tuple, Generator, Any, Union
+from rfb_mc.runner import FormulaParams, Runner
+from rfb_mc.integrator import Integrator
+from rfb_mc.scheduler import Scheduler, IntermediateResult, Result
+from rfb_mc.types import RfBmcTask, BmcTask, BmcResult, RfBmcResult
 from threading import Thread
 
-from rfb_mc.types import RfBmcTask, BmcTask, BmcResult, RfBmcResult
 
-
-class DirectIntegratorBase(
-    Generic[IntermediateResult, Result, FormulaParams],
-    IntegratorBase[IntermediateResult, Result]
-):
+class DirectIntegrator(Generic[FormulaParams], Integrator):
     """
     Class that implements instantiating runners directly.
 
@@ -32,16 +28,16 @@ class DirectIntegratorBase(
 
     @classmethod
     @abstractmethod
-    def get_runner_class(cls) -> Type[RunnerBase[FormulaParams, Any, Any]]:
+    def get_runner_class(cls) -> Type[Runner[FormulaParams, Any, Any]]:
         """
         Returns class used for the runner in worker processes.
         """
         raise NotImplementedError()
 
     def __init__(self, formula_params: FormulaParams):
-        super().__init__(formula_params)
+        self.formula_params: FormulaParams = formula_params
 
-    def run(self, scheduler: SchedulerBase):
+    def run(self, scheduler: Scheduler[IntermediateResult, Result]) -> Generator[IntermediateResult, None, Result]:
         runner = self.get_runner_class()(
             params=scheduler.store.data.params,
             formula_params=self.formula_params,
@@ -71,10 +67,8 @@ class DirectIntegratorBase(
 
                     s = perf_counter()
 
-                    if type(task) == BmcTask:
-                        task_result: Tuple[BmcTask, BmcResult] = (task, runner.bmc(task))
-                    else:
-                        task_result: Tuple[RfBmcTask, RfBmcResult] = (task, runner.rf_bmc(task))
+                    task_result: Union[Tuple[BmcTask, BmcResult], Tuple[RfBmcTask, RfBmcResult]] =\
+                        (task, runner.bmc(task)) if isinstance(task, BmcTask) else (task, runner.rf_bmc(task))
 
                     self._print_debug(f"Ran {task_result[0]} returning {task_result[1]}"
                                       f" which took {perf_counter() - s:.3f} seconds")

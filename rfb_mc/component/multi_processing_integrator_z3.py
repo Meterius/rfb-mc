@@ -1,14 +1,9 @@
-from typing import Generic
-from rfb_mc.component.multi_processing_integrator import MultiProcessingIntegratorBase, \
-    IntermediateResult, Result
+from rfb_mc.component.multi_processing_integrator import MultiProcessingIntegrator
 from rfb_mc.component.runner_z3 import RunnerZ3, FormulaParamsZ3, \
     serialize_formula_params_z3, deserialize_formula_params_z3, SerializedFormulaParamsZ3
 
 
-class MultiProcessingIntegratorZ3(
-    Generic[IntermediateResult, Result],
-    MultiProcessingIntegratorBase[IntermediateResult, Result, FormulaParamsZ3, SerializedFormulaParamsZ3]
-):
+class MultiProcessingIntegratorZ3(MultiProcessingIntegrator[FormulaParamsZ3, SerializedFormulaParamsZ3]):
     @classmethod
     def get_runner_class(cls):
         return RunnerZ3

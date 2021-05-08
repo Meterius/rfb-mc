@@ -3,7 +3,7 @@ from collections import Counter
 from typing import NamedTuple, Optional, List, Tuple, Dict, cast
 from rfb_mc.component.helper.z3_helper import clone_expression, deserialize_expression, \
     serialize_expression
-from rfb_mc.runner import RunnerBase
+from rfb_mc.runner import Runner
 from rfb_mc.types import Params, RfBmcTask, RfBmcResult, BmcResult, BmcTask
 
 FormulaParamsZ3 = NamedTuple("FormulaParamsZ3", [("formula", z3.BoolRef), ("variables", List[z3.BitVecRef])])
@@ -11,7 +11,7 @@ FormulaParamsZ3 = NamedTuple("FormulaParamsZ3", [("formula", z3.BoolRef), ("vari
 RfmiGenerationArgsZ3 = NamedTuple("RfmiGenerationArgsZ3", [("variables", List[z3.BitVecRef])])
 
 
-class RunnerZ3(RunnerBase[FormulaParamsZ3, RfmiGenerationArgsZ3, z3.BoolRef]):
+class RunnerZ3(Runner[FormulaParamsZ3, RfmiGenerationArgsZ3, z3.BoolRef]):
     def __init__(
         self,
         params: Params,
@@ -31,7 +31,7 @@ class RunnerZ3(RunnerBase[FormulaParamsZ3, RfmiGenerationArgsZ3, z3.BoolRef]):
         # maps q to a solver that has a q-times conjunction asserted
         self._solver_map: Dict[int, Tuple[z3.Solver, List[z3.BitVecRef]]] = {}
 
-    def _get_solver(self, q: int) -> (z3.Solver, List[z3.BitVecRef]):
+    def _get_solver(self, q: int) -> Tuple[z3.Solver, List[z3.BitVecRef]]:
         """
         Returns the solver and cloned variables, of which the solver
         has the q-times conjunction of the formula asserted.
@@ -56,11 +56,7 @@ class RunnerZ3(RunnerBase[FormulaParamsZ3, RfmiGenerationArgsZ3, z3.BoolRef]):
         return self._solver_map[q]
 
     @classmethod
-    def check_params_and_formula_params_compatibility(
-        cls,
-        params: Params,
-        formula_params: FormulaParamsZ3,
-    ):
+    def check_params_and_formula_params_compatibility(cls, params: Params, formula_params: FormulaParamsZ3):
         formula_variable_counter = Counter([x.size() for x in formula_params.variables])
         assert formula_variable_counter == params.bit_width_counter, \
                "bit widths of the formula params must match bit widths of the params"

@@ -6,19 +6,16 @@ from time import perf_counter, sleep
 import os
 from collections import Counter
 from threading import Thread
-from typing import Generic, Iterable, Type, TypeVar, Any
-from rfb_mc.runner import FormulaParams, RunnerBase
-from rfb_mc.integrator import IntegratorBase, IntermediateResult, Result
-from rfb_mc.scheduler import SchedulerBase
+from typing import Generic, Iterable, Type, TypeVar, Any, Generator, Union
+from rfb_mc.integrator import Integrator
+from rfb_mc.runner import FormulaParams, Runner
+from rfb_mc.scheduler import IntermediateResult, Result, Scheduler
 from rfb_mc.types import Params, RfBmcTask, BmcTask
 
 SerializedFormulaParams = TypeVar("SerializedFormulaParams")
 
 
-class MultiProcessingIntegratorBase(
-    Generic[IntermediateResult, Result, FormulaParams, SerializedFormulaParams],
-    IntegratorBase[IntermediateResult, Result]
-):
+class MultiProcessingIntegrator(Generic[FormulaParams, SerializedFormulaParams], Integrator):
     """
     Class that implements instantiating runners in created processes thus enabling parallel
     execution of scheduler tasks on multiple CPU cores.
@@ -39,7 +36,7 @@ class MultiProcessingIntegratorBase(
 
     @classmethod
     @abstractmethod
-    def get_runner_class(cls) -> Type[RunnerBase[FormulaParams, Any, Any]]:
+    def get_runner_class(cls) -> Type[Runner[FormulaParams, Any, Any]]:
         """
         Returns class used for the runner in worker processes.
         """
@@ -67,11 +64,11 @@ class MultiProcessingIntegratorBase(
         cls,
         worker_idx: int,
         worker_count: int,
-        stdio_lock: Lock,
+        stdio_lock: Any,
         task_queue: Queue,
         result_queue: Queue,
         params: Params,
-        serialized_formula_params: FormulaParams,
+        serialized_formula_params: SerializedFormulaParams,
     ):
         worker_number = worker_idx + 1
 
@@ -109,13 +106,13 @@ class MultiProcessingIntegratorBase(
 
             task = task_queue.get()
 
-    def __init__(self, formula_params: FormulaParams, worker_count: int = os.cpu_count()):
-        super().__init__(formula_params)
+    def __init__(self, formula_params: FormulaParams, worker_count: int = os.cpu_count() or 2):
+        self.formula_params: FormulaParams = formula_params
         self.worker_count = worker_count
 
-    def run(self, scheduler: SchedulerBase):
-        task_queue = Queue()
-        result_queue = Queue()
+    def run(self, scheduler: Scheduler[IntermediateResult, Result]) -> Generator[IntermediateResult, None, Result]:
+        task_queue: Queue = Queue()
+        result_queue: Queue = Queue()
         stdio_lock = Lock()
 
         def print_debug(*messages: Iterable[str]):
@@ -150,7 +147,7 @@ class MultiProcessingIntegratorBase(
         s1 = perf_counter()
 
         try:
-            tasks_in_progress: Counter[RfBmcTask] = Counter()
+            tasks_in_progress: Counter[Union[RfBmcTask, BmcTask]] = Counter[Union[RfBmcTask, BmcTask]]()
 
             algorithm_generator = scheduler.run()
             prev_intermediate_result = None

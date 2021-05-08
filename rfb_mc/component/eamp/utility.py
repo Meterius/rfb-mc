@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Iterable, cast
 from fractions import Fraction
 from math import ceil, comb, prod
 
@@ -17,10 +17,10 @@ def probability_of_correctness(
 def majority_vote_error_probability(
     alpha: Fraction, r: int,
 ) -> Fraction:
-    return sum([
+    return cast(Fraction, sum([
         comb(r, rj) * (alpha ** r) * ((1 - alpha) ** (r - rj))
-        for rj in range(ceil(r / 2), r + 1)
-    ])
+        for rj in range(int(ceil(r / 2)), r + 1)
+    ]))
 
 
 def multi_majority_vote_iteration_count_to_ensure_beta(

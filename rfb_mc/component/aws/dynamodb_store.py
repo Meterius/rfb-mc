@@ -1,11 +1,11 @@
 from decimal import Decimal
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
-from typing import Optional, Iterable, Tuple, TypedDict
+from typing import Optional, Iterable, Tuple, TypedDict, Literal, Any
 import uuid
 from rfb_mc.serialization import SerializedV1StoreData, v1_encode_rf_bmc_task_result, decode_store_data, \
-    v1_encode_store_data, v1_encode_params, v1_encode_bmc_task_result
-from rfb_mc.store import StoreBase, StoreData
+    v1_encode_store_data, v1_encode_params, v1_encode_bmc_task_result, SerializedV1RfBmcResultsMap, SerializedV1Params
+from rfb_mc.store import Store, StoreData
 from rfb_mc.types import RfBmcTask, RfBmcResult, Params, BmcTask, BmcResult
 
 
@@ -28,7 +28,7 @@ def v1_convert_dynamodb_store_item_bmc_task_result(
     return BmcTask(
         a=int(task_result["task"]["a"]),
     ), BmcResult(
-        bmc=int(task_result["result"]["bmc"]),
+        bmc=int(task_result["result"]["bmc"]) if task_result["result"]["bmc"] is not None else None,
     )
 
 
@@ -40,13 +40,16 @@ def v1_convert_bmc_task_result(
             a=Decimal(task_result[0].a),
         ),
         result=DynamodbV1StoreItemBmcResult(
-            bmc=Decimal(task_result[1].bmc),
+            bmc=Decimal(task_result[1].bmc) if task_result[1].bmc is not None else None,
         )
     )
 
 
-class DynamodbV1StoreItem(SerializedV1StoreData):
+class DynamodbV1StoreItem(TypedDict):
     id: str
+    version: Literal[1]
+    params: SerializedV1Params
+    rf_bmc_results_map: SerializedV1RfBmcResultsMap
     bmc_task_result: Optional[DynamodbV1StoreItemBmcTaskResult]
 
 
@@ -61,15 +64,20 @@ def v1_convert_dynamodb_store_item(item: DynamodbV1StoreItem) -> SerializedV1Sto
     )
 
 
-def v1_convert_store_data(store_data: StoreData) -> DynamodbV1StoreItem:
+def v1_convert_store_data(ident: str, store_data: StoreData) -> DynamodbV1StoreItem:
+    encoded_store_data = v1_encode_store_data(store_data)
+
     return DynamodbV1StoreItem(
-        **v1_encode_store_data(store_data),
+        id=ident,
+        version=encoded_store_data["version"],
+        params=encoded_store_data["params"],
+        rf_bmc_results_map=encoded_store_data["rf_bmc_results_map"],
         bmc_task_result=v1_convert_bmc_task_result(store_data.bmc_task_result)
         if store_data.bmc_task_result is not None else None
     )
 
 
-class DynamodbStore(StoreBase):
+class DynamodbStore(Store):
     VERSION = 1
 
     def __init__(self, table, ident: str):
@@ -184,10 +192,7 @@ class DynamodbStore(StoreBase):
         return data
 
     @staticmethod
-    def get_store_data_entry(
-        table,
-        ident: str,
-    ) -> (int, StoreData):
+    def get_store_data_entry(table: Any, ident: str) -> Tuple[int, StoreData]:
         """
         Retrieves the store data entry with the given identifier from
         the table and decodes it.
@@ -217,7 +222,7 @@ class DynamodbStore(StoreBase):
             },
         )
 
-        item: DynamodbV1StoreItem = v1_convert_store_data(store_data)
+        item: DynamodbV1StoreItem = v1_convert_store_data(ident, store_data)
 
         table.put_item(
             Item=item
@@ -241,7 +246,7 @@ class DynamodbStore(StoreBase):
 
         ident_specified = ident is not None
         # a generated uuid4 id is highly unlikely to collide with existing ids
-        ident = ident if ident_specified else str(uuid.uuid4())
+        ident = ident if ident is not None else str(uuid.uuid4())
 
         item: DynamodbV1StoreItem = DynamodbV1StoreItem(
             id=ident,

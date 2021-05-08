@@ -3,15 +3,13 @@ from math import log2, ceil
 from typing import Type, List, Tuple
 from rfb_mc.component.eamp.eamp_rfm import EampInstanceParams, EampRfm, EampTransformMethod
 from rfb_mc.component.runner_z3 import RfmiGenerationArgsZ3
-from rfb_mc.restrictive_formula_module_implementation import RestrictiveFormulaModuleImplementationBase
+from rfb_mc.restrictive_formula_module_implementation import RestrictiveFormulaModuleImplementation
 from rfb_mc.types import Params
 
 
-class EampRfmiZ3(RestrictiveFormulaModuleImplementationBase[EampInstanceParams, RfmiGenerationArgsZ3, z3.BoolRef]):
+class EampRfmiZ3(RestrictiveFormulaModuleImplementation[EampInstanceParams, RfmiGenerationArgsZ3, z3.BoolRef]):
     @classmethod
-    def get_restrictive_formula_module(
-        cls,
-    ) -> Type[EampRfm]:
+    def get_restrictive_formula_module(cls) -> Type[EampRfm]:
         return EampRfm
 
     @classmethod
@@ -59,7 +57,7 @@ class EampRfmiZ3(RestrictiveFormulaModuleImplementationBase[EampInstanceParams, 
             else:
                 raise RuntimeError(f"Not implemented transform method {instance_params.params.transform_method}")
 
-        def make_hash_equation(pj: int, var_b: Tuple[int], b1: int, b2: int):
+        def make_hash_equation(pj: int, var_b: Tuple[int, ...], b1: int, b2: int):
             domain_bit_count = int(ceil(log2(pj)))
             bc = int(ceil(log2(pj + 1)))
             slices = get_slices(domain_bit_count)

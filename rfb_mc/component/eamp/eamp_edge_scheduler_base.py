@@ -6,27 +6,23 @@ from rfb_mc.component.eamp.eamp_rfm import EampParams, EampRfm
 from rfb_mc.component.eamp.types import ProbabilisticInterval
 from rfb_mc.component.eamp.utility import majority_vote_error_probability, \
     multi_majority_vote_iteration_count_to_ensure_beta, probability_of_correctness
-from rfb_mc.scheduler import SchedulerBase
-from rfb_mc.store import StoreBase
+from rfb_mc.scheduler import Scheduler, SchedulerAlgorithmYield
+from rfb_mc.store import Store
 from rfb_mc.types import RfBmcTask, RfBmcResult, BmcTask, BmcResult
 
 PartialEampParams = TypeVar("PartialEampParams")
 
 
-class EampEdgeSchedulerBase(
-    Generic[PartialEampParams],
-    SchedulerBase[ProbabilisticInterval, ProbabilisticInterval]
-):
+class EampEdgeSchedulerBase(Generic[PartialEampParams], Scheduler[ProbabilisticInterval, ProbabilisticInterval]):
     def __init__(
         self,
-        store: StoreBase,
+        store: Store,
         confidence: Union[Fraction, float],
         a: int,
         q: int,
         min_model_count: Optional[int] = None,
         max_model_count: Optional[int] = None,
     ):
-
         super().__init__(store)
 
         # amount of models that are at most possible for a formula having the amount of bits specified
@@ -52,7 +48,7 @@ class EampEdgeSchedulerBase(
         self.a: int = a
         self.q: int = q
         self.confidence: Fraction = Fraction(confidence)
-        self.store: StoreBase = store
+        self.store: Store = store
 
         g, lg = EampEdgeSchedulerBase.get_g_and_lg(a)
         self.g: float = g
@@ -178,9 +174,9 @@ class EampEdgeSchedulerBase(
                 confidence=probability_of_correctness(error_probabilities),
             )
 
-        def majority_vote_estimate(c: List[int]):
+        def majority_vote_estimate(p: PartialEampParams):
             while True:
-                rf_bmc_task = make_rf_bmc_task(self._make_eamp_params(c))
+                rf_bmc_task = make_rf_bmc_task(self._make_eamp_params(p))
 
                 # copies the required results data in order for it not to be modified while using them
                 rf_bmc_results: Counter[RfBmcResult] = \
@@ -206,9 +202,9 @@ class EampEdgeSchedulerBase(
                 if negative_voters > positive_voters and negative_voters > positive_voters + remaining:
                     return False, majority_vote_error_probability(Fraction(1, 4), r)
 
-                yield EampEdgeSchedulerBase.AlgorithmYield(
-                    required_tasks=Counter[RfBmcTask](remaining * [rf_bmc_task]),
-                    predicted_required_tasks=Counter[RfBmcTask](),
+                yield SchedulerAlgorithmYield[ProbabilisticInterval](
+                    required_tasks=Counter[Union[RfBmcTask, BmcTask]](remaining * [rf_bmc_task]),
+                    predicted_required_tasks=Counter[Union[RfBmcTask, BmcTask]](),
                     intermediate_result=get_edge_interval(),
                 )
 
@@ -268,9 +264,9 @@ class EampEdgeSchedulerBase(
                 bmc_task_result: Optional[Tuple[BmcTask, BmcResult]] = self.store.data.bmc_task_result
 
                 while bmc_task_result is None or bmc_task_result[0].a < s:
-                    yield EampEdgeSchedulerBase.AlgorithmYield(
-                        required_tasks=Counter[BmcTask]([BmcTask(a=s)]),
-                        predicted_required_tasks=Counter[BmcTask](),
+                    yield SchedulerAlgorithmYield[ProbabilisticInterval](
+                        required_tasks=Counter[Union[RfBmcTask, BmcTask]]([BmcTask(a=s)]),
+                        predicted_required_tasks=Counter[Union[RfBmcTask, BmcTask]](),
                         intermediate_result=get_edge_interval(),
                     )
 

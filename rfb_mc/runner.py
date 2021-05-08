@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import TypeVar, Generic, Dict, Any, Type
 from rfb_mc.restrictive_formula_module import register_restrictive_formula_module
-from rfb_mc.restrictive_formula_module_implementation import RestrictiveFormulaModuleImplementationBase, \
+from rfb_mc.restrictive_formula_module_implementation import RestrictiveFormulaModuleImplementation, \
     RestrictiveFormulaInstance
 from rfb_mc.types import Params, RfBmcTask, RfBmcResult, BmcResult, BmcTask
 
@@ -10,19 +10,19 @@ FormulaParams = TypeVar("FormulaParams")
 RestrictiveFormulaInstanceGenerationArgs = TypeVar("RestrictiveFormulaInstanceGenerationArgs")
 
 
-class RunnerBase(ABC, Generic[FormulaParams, RestrictiveFormulaInstanceGenerationArgs, RestrictiveFormulaInstance]):
+class Runner(ABC, Generic[FormulaParams, RestrictiveFormulaInstanceGenerationArgs, RestrictiveFormulaInstance]):
     def __init__(self, params: Params, formula_params: FormulaParams):
         self.check_params_and_formula_params_compatibility(params, formula_params)
         self.params: Params = params
         self.formula_params: FormulaParams = formula_params
 
-    restrictive_formula_module_implementation_map: Dict[str, Type[RestrictiveFormulaModuleImplementationBase]] = {}
+    restrictive_formula_module_implementation_map: Dict[str, Type[RestrictiveFormulaModuleImplementation]] = {}
     """
     Map from restrictive formula module uid to implementation class.
     """
 
     @classmethod
-    def register_restrictive_formula_module_implementation(cls, rfmi: Type[RestrictiveFormulaModuleImplementationBase]):
+    def register_restrictive_formula_module_implementation(cls, rfmi: Type[RestrictiveFormulaModuleImplementation]):
         register_restrictive_formula_module(
             rfmi.get_restrictive_formula_module(),
         )

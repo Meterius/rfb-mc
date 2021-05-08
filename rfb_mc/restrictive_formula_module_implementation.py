@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import TypeVar, Generic, Type, Any
-from rfb_mc.restrictive_formula_module import RestrictiveFormulaInstanceParams, RestrictiveFormulaModuleBase
+from rfb_mc.restrictive_formula_module import RestrictiveFormulaInstanceParams, RestrictiveFormulaModule
 from rfb_mc.types import Params
 
 RestrictiveFormulaInstance = TypeVar("RestrictiveFormulaInstance")
@@ -8,7 +8,7 @@ RestrictiveFormulaInstance = TypeVar("RestrictiveFormulaInstance")
 RestrictiveFormulaInstanceGenerationArgs = TypeVar("RestrictiveFormulaInstanceGenerationArgs")
 
 
-class RestrictiveFormulaModuleImplementationBase(
+class RestrictiveFormulaModuleImplementation(
     ABC,
     Generic[RestrictiveFormulaInstanceParams, RestrictiveFormulaInstanceGenerationArgs, RestrictiveFormulaInstance],
 ):
@@ -16,7 +16,7 @@ class RestrictiveFormulaModuleImplementationBase(
     @abstractmethod
     def get_restrictive_formula_module(
         cls,
-    ) -> Type[RestrictiveFormulaModuleBase[Any, Any, RestrictiveFormulaInstanceParams]]:
+    ) -> Type[RestrictiveFormulaModule[Any, Any, RestrictiveFormulaInstanceParams]]:
         """
         Restrictive formula module this class implements.
         """
