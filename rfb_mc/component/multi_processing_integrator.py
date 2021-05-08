@@ -4,9 +4,8 @@ from multiprocessing import Lock, Queue, Process
 from queue import Empty
 from time import perf_counter, sleep
 import os
-from collections import Counter
 from threading import Thread
-from typing import Generic, Iterable, Type, TypeVar, Any, Generator, Union
+from typing import Generic, Iterable, Type, TypeVar, Any, Generator, Union, Counter
 from rfb_mc.integrator import Integrator
 from rfb_mc.runner import FormulaParams, Runner
 from rfb_mc.scheduler import IntermediateResult, Result, Scheduler
