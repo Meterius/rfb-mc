@@ -1,5 +1,7 @@
 import subprocess
 
+subprocess.run(["python", "script-typecheck.py"], check=True)
+
 subprocess.run(["python", "script-test.py"], check=True)
 
 subprocess.run(["python", "script-build.py"], check=True)

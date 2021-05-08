@@ -11,6 +11,6 @@ if os.path.exists("build"):
 if os.path.exists("rfb_mc.egg-info"):
     shutil.rmtree("rfb_mc.egg-info")
 
-subprocess.run(["python", "-m", "pip", "install", "build"])
+subprocess.run(["python", "-m", "pip", "install", "build"], check=True)
 
-subprocess.run(["python", "-m", "build"])
+subprocess.run(["python", "-m", "build"], check=True)
