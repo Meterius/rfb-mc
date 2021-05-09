@@ -1,5 +1,6 @@
 import unittest
 from abc import ABC, abstractmethod
+from time import perf_counter
 from typing import Type, Optional, Counter
 import z3
 from rfb_mc.component.direct_integrator_z3 import DirectIntegratorZ3
@@ -11,6 +12,8 @@ from rfb_mc.component.runner_z3 import FormulaParamsZ3, RunnerZ3
 from rfb_mc.store import StoreData
 from rfb_mc.test.helper import count_models_by_branching
 from rfb_mc.types import Params
+
+RUN_MINI_BENCHMARK = True
 
 
 class EampEdgeSchedulerTestCaseBase(ABC):
@@ -97,23 +100,29 @@ class EampEdgeSchedulerTestCaseBase(ABC):
         )
 
     def run_test_execution(self):
-        for upper_bound in (0, 1, 50):
-            x, y = z3.BitVec("x", 4), z3.BitVec("y", 8)
-            formula: z3.BoolRef = z3.ULT(z3.ZeroExt(4, x) + y, z3.BitVecVal(upper_bound, 8))
-            self.assert_eamp_edge_scheduler_execution(100, 2, 0.99, FormulaParamsZ3(formula=formula, variables=[x, y]))
+        # for upper_bound in (0, 1, 50):
+        #     x, y = z3.BitVec("x", 4), z3.BitVec("y", 8)
+        #     formula: z3.BoolRef = z3.ULT(z3.ZeroExt(4, x) + y, z3.BitVecVal(upper_bound, 8))
+        #     self.assert_eamp_edge_scheduler_execution(100, 2, 0.99, FormulaParamsZ3(formula=formula, variables=[x, y]))
 
         x, y = z3.BitVec("x", 8), z3.BitVec("y", 8)
         formula: z3.BoolRef = z3.ULT(y, 100)
         model_count = (2 ** 8) * 100
 
-        self.assert_eamp_edge_scheduler_execution(100, 1, 0.99, FormulaParamsZ3(
-            formula=formula, variables=[x, y]
-        ), model_count)
+        for q in (1, 2, 3, 4) if RUN_MINI_BENCHMARK else (1,):
+            t0 = perf_counter()
 
-        zs = [z3.BitVec(f"z{idx}", 1) for idx in range(50)]
-        formula: z3.BoolRef = z3.And([zs[idx] == 1 for idx in range(25)])
-        model_count = 2 ** 25
+            self.assert_eamp_edge_scheduler_execution(100, q, 0.99, FormulaParamsZ3(
+                formula=formula, variables=[x, y]
+            ), model_count)
 
-        self.assert_eamp_edge_scheduler_execution(100, 1, 0.99, FormulaParamsZ3(
-            formula=formula, variables=zs
-        ), model_count)
+            print(f"Mini Benchmark {self.get_eamp_edge_scheduler_class()} q={q} took {perf_counter() - t0:.2f}")
+
+        # zs = [z3.BitVec(f"z{idx}", 1) for idx in range(50)]
+        # formula: z3.BoolRef = z3.And([zs[idx] == 1 for idx in range(25)])
+        # model_count = 2 ** 25
+        #
+        # self.assert_eamp_edge_scheduler_execution(
+        #     100, 1, 0.99, FormulaParamsZ3(
+        #         formula=formula, variables=zs
+        #     ), model_count)

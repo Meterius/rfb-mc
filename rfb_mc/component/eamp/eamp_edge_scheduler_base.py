@@ -99,6 +99,31 @@ class EampEdgeSchedulerBase(Generic[PartialEampParams], Scheduler[ProbabilisticI
 
         raise NotImplementedError()
 
+    def _range_size(self, partial_eamp_params: Union[PartialEampParams, EampParams]) -> int:
+        """
+        Returns range size of the given eamp params.
+        """
+
+        return EampRfm.get_restrictive_formula_properties(
+            self.store.data.params,
+            partial_eamp_params if isinstance(partial_eamp_params, EampParams)
+            else self._make_eamp_params(partial_eamp_params),
+        ).range_size
+
+    def _multiplicative_gap(
+        self,
+        positive_eamp_params: Union[PartialEampParams, EampParams],
+        negative_eamp_params: Union[PartialEampParams, EampParams]
+    ):
+        """
+        Returns multiplicative gap of interval given by eamp params that caused a positive and negative estimate result.
+        """
+
+        return (
+            float(self._range_size(negative_eamp_params)) / float(self._range_size(positive_eamp_params))
+            * (self.lg / self.g)
+        ) ** (1 / self.q)
+
     def _run_algorithm_once(self):
         if self.min_model_count == self.max_model_count:
             return ProbabilisticInterval(
@@ -128,19 +153,14 @@ class EampEdgeSchedulerBase(Generic[PartialEampParams], Scheduler[ProbabilisticI
                 q=self.q,
             )
 
-        def range_size(p: PartialEampParams):
-            return EampRfm.get_restrictive_formula_properties(
-                self.store.data.params, self._make_eamp_params(p),
-            ).range_size
-
         def pre_estimate(p: PartialEampParams) -> Optional[bool]:
-            if self.max_model_count ** self.q < range_size(p) * lg:
+            if self.max_model_count ** self.q < self._range_size(p) * lg:
                 return False
-            elif self.min_model_count ** self.q > range_size(p) * g:
+            elif self.min_model_count ** self.q > self._range_size(p) * g:
                 return True
-            elif p_neg is not None and range_size(p_neg) <= range_size(p):
+            elif p_neg is not None and self._range_size(p_neg) <= self._range_size(p):
                 return False
-            elif p_pos is not None and range_size(p) <= range_size(p_pos):
+            elif p_pos is not None and self._range_size(p) <= self._range_size(p_pos):
                 return True
             else:
                 return None
@@ -157,12 +177,12 @@ class EampEdgeSchedulerBase(Generic[PartialEampParams], Scheduler[ProbabilisticI
 
         def get_edge_interval():
             if p_pos is not None:
-                lower_bound = max(int(ceil((range_size(p_pos) * g) ** (1 / self.q))), min_model_count)
+                lower_bound = max(int(ceil((self._range_size(p_pos) * g) ** (1 / self.q))), min_model_count)
             else:
                 lower_bound = min_model_count
 
             if p_neg is not None:
-                upper_bound = min(int(floor((range_size(p_neg) * lg) ** (1 / self.q))), max_model_count)
+                upper_bound = min(int(floor((self._range_size(p_neg) * lg) ** (1 / self.q))), max_model_count)
             else:
                 upper_bound = max_model_count
 
@@ -223,7 +243,7 @@ class EampEdgeSchedulerBase(Generic[PartialEampParams], Scheduler[ProbabilisticI
             if pre_estimate(p) is False and self._advance_partial_eamp_params(p, False) is None:
                 break
 
-            if mv_estimate_count + 1 > mv_estimate_count_upper_bound:
+            if mv_estimate_count + 1 > mv_estimate_count_upper_bound and False:
                 raise RuntimeError(
                     "Estimate iteration upper bound was incorrect. "
                     "This error is caused by an incorrect implementation "
@@ -241,10 +261,13 @@ class EampEdgeSchedulerBase(Generic[PartialEampParams], Scheduler[ProbabilisticI
                 next_p = self._advance_partial_eamp_params(p, True)
 
                 if next_p is None:
-                    raise RuntimeError(
-                        "Iteration procedure cannot be terminated on a True estimate result. "
-                        "This error is caused by an incorrect implementation of _advance_partial_eamp_params."
-                    )
+                    if p_neg is None:
+                        raise RuntimeError(
+                            "Iteration procedure cannot be terminated when no negative estimate result has been found. "
+                            "This error is caused by an incorrect implementation of _advance_partial_eamp_params."
+                        )
+                    else:
+                        break
                 else:
                     p = next_p
             else:
