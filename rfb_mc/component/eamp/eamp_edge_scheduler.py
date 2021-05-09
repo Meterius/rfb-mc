@@ -123,10 +123,5 @@ class EampEdgeScheduler(EampEdgeSchedulerBase[Tuple[int, List[int]]]):
 
     @staticmethod
     def get_upper_bound_for_multiplicative_gap_of_result(a: int, q: int) -> float:
-        """
-        Returns an upper bound on the multiplicative gap of the final edge interval returned
-        by the eamp edge scheduler.
-        """
-
         g, lg = EampEdgeScheduler.get_g_and_lg(a)
         return (2 * lg / g) ** (1 / q)

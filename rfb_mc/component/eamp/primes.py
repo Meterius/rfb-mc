@@ -1,4 +1,4 @@
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Optional, overload
 from functools import lru_cache
 import os
 import random
@@ -39,18 +39,21 @@ def get_lowest_prime_above_or_equal_power_of_power_of_two(j: int) -> int:
 
 
 def miller_rabin(n: int, k: int = 40) -> bool:
+    """
+    Takes in a possible prime n and the number of testing iterations k.
+    Returns True if n is a prime, returns False with a probability >= (1/4)**(-k) if it is not.
+    Note: If n < 2, False will always be returned
+    """
+
     # Implementation uses the Miller-Rabin Primality Test
     # The optimal number of rounds for this test is 40
     # See http://stackoverflow.com/questions/6325576
     #     /how-many-iterations-of-rabin-miller-should-i-use-for-cryptographic-safe-primes
     # for justification
 
-    # If number is even, it's a composite number
-
-    if n == 2 or n == 3:
-        return True
-
-    if n % 2 == 0:
+    if n <= 3:
+        return True if n == 2 or n == 3 else False
+    elif n % 2 == 0:
         return False
 
     r, s = 0, n - 1
@@ -72,22 +75,46 @@ def miller_rabin(n: int, k: int = 40) -> bool:
     return True
 
 
-def get_closest_prime(x: int, only_larger: bool = False) -> int:
+@overload
+def get_closest_prime(x: int) -> int: pass
+
+
+@overload
+def get_closest_prime(x: int, bounds: Tuple[Optional[int], None]) -> int: pass
+
+
+@overload
+def get_closest_prime(x: int, bounds: Tuple[Optional[int], int]) -> Optional[int]: pass
+
+
+def get_closest_prime(
+    x: int,
+    bounds: Tuple[Optional[int], Optional[int]] = (None, None),
+) -> Optional[int]:
     """
     Generates the prime nearest to the given "x" (including x itself).
-    Unless only_larger is True in which case the lowest prime above or equal x is generated.
+    The generated prime will be within the given bounds (unless none exists in which case None is returned),
+    a bound of None will mean the side is unbounded i.e. (12, None) means the generated prime needs to be >= 12.
     There is a small probability that the generated prime is not a prime.
     """
 
-    if miller_rabin(x, k=40):
+    lower_bound = max(bounds[0] or 0, 2)
+    upper_bound = bounds[1]
+
+    def in_bounds(y: int) -> bool:
+        return lower_bound <= y and (upper_bound is None or y <= upper_bound)
+
+    if in_bounds(x) and miller_rabin(x, k=40):
         return x
 
     k = 1
 
-    while True:
-        if not only_larger and x - k > 1 and miller_rabin(x - k, k=40):
+    while in_bounds(x - k) or in_bounds(x + k):
+        if in_bounds(x - k) and miller_rabin(x - k, k=40):
             return x - k
-        elif miller_rabin(x + k, k=40):
+        elif in_bounds(x + k) and miller_rabin(x + k, k=40):
             return x + k
         else:
             k += 1
+
+    return None

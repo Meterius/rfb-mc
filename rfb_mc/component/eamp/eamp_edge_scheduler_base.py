@@ -295,3 +295,13 @@ class EampEdgeSchedulerBase(Generic[PartialEampParams], Scheduler[ProbabilisticI
         """
 
         return (sqrt(a + 1) - 1) ** 2, (sqrt(a + 1) + 1) ** 2
+
+    @staticmethod
+    @abstractmethod
+    def get_upper_bound_for_multiplicative_gap_of_result(a: int, q: int) -> float:
+        """
+        Returns an upper bound on the multiplicative gap of the final edge interval returned
+        by the eamp edge scheduler.
+        """
+
+        raise NotImplementedError()
